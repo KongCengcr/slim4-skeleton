@@ -17,10 +17,11 @@ use Slim\Interfaces\RouteParserInterface;
 use Slim\Middleware\ErrorMiddleware;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\InputOption;
+use App\Database\PdoConnection;
 
 return [
     // Application settings
-    'settings' => fn () => require __DIR__ . '/settings.php',
+    'settings' => fn() => require __DIR__ . '/settings.php',
 
     App::class => function (ContainerInterface $container) {
         $app = AppFactory::createFromContainer($container);
@@ -74,12 +75,28 @@ return [
         return new Connection($container->get('settings')['db']);
     },
 
-    PDO::class => function (ContainerInterface $container) {
-        $db = $container->get(Connection::class);
-        $driver = $db->getDriver();
-        $driver->connect();
+    // PDO::class => function (ContainerInterface $container) {
+    //     $db = $container->get(Connection::class);
+    //     $driver = $db->getDriver();
+    //     $driver->connect();
 
-        return $driver->getConnection();
+    //     return $driver->getConnection();
+    // },
+
+    PdoConnection::class => function (ContainerInterface $container) {
+        $settings = $container->get('settings')['db'];
+        $database = $settings['database'];
+        $driver = $settings['driver'] ?? 'mysql';
+        $host = $settings['host'] ?? '127.0.0.1';
+        $port = $settings['port'] ?? '3306';
+        $username = (string)$settings['username'];
+        $password = (string)$settings['password'];
+        // $charset = (string)$settings['charset'] ?? 'utf8mb4';
+        // $collate = (string)$settings['collate'] ?? 'utf8mb4_unicode_ci';
+        $flags = (array)$settings['flags'];
+        $dsn = "$driver:host=$host:$port;dbname=$database";
+
+        return new PdoConnection($dsn, $username, $password, $flags);
     },
 
     ErrorMiddleware::class => function (ContainerInterface $container) {
